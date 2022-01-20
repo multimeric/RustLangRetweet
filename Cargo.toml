@@ -2,11 +2,12 @@
 name = "rust_lang_retweet"
 version = "0.1.0"
 edition = "2018"
+autobins = false
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-egg-mode = "0.16.0"
 serde_json = "1.0.12"
 tokio = { version = "1", features = ["full"] }
 lambda_runtime = "0.4.1"
@@ -15,3 +16,18 @@ chrono = "0.4.0"
 reqwest = { version = "0.11.9", features = ["json"] }
 serde = "1.0.133"
 oauth2 = "4.1.0"
+aws-sdk-dynamodb = "0.5.0"
+aws-config = "0.5.0"
+openssl = { version = "0.10.38", features = ["vendored"] }
+
+[[bin]]
+name = "login"
+path = "src/bin/login.rs"
+
+[[bin]]
+name = "scrape"
+path = "src/bin/scrape.rs"
+
+[lib]
+name = "rust_lang_retweet"
+path = "src/lib.rs"
