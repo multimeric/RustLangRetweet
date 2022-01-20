@@ -62,18 +62,3 @@ The steps below will show you how to set up the bot.
 ### Schedule the Lambda
 * Open the lambda function in the console, and select "Add trigger"
 * Add an EventBridge trigger, using a rate such as `rate(15 minutes)` to make it run regularly
-
-## Technical Notes
-
-### 
-
-* Flow
-  * User runs `login` locally
-    * They are directed to the OAuth URL
-    * The redirect URL is set to localhost
-    * The redirect URL hits a webserver also run by `login`
-    * This captures the refresh token, and inserts it into the dynamodb
-  * Every 5 minutes, the `scrape` lambda is triggered
-    * This uses the existing refresh token and requests an access token
-    * Refreshes the refresh token in the db also
-    * Scrapes tweets and retweets them
