@@ -4,14 +4,14 @@ use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Duration, Utc};
-use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{AccessToken, RefreshToken, TokenResponse};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use rust_lang_retweet::auth::{client_from_env, get_twitter_client_id};
+use rust_lang_retweet::auth::client_from_env;
 use rust_lang_retweet::dynamo::{get_key_name, get_table_name, update_database};
+use rust_lang_retweet::environment::{get_twitter_client_id, get_twitter_query};
 
 #[derive(Deserialize, Debug)]
 struct TwitterApiResponse<DATA, META> {
@@ -40,20 +40,34 @@ struct TwitterMeta {
     next_token: Option<String>,
 }
 
-pub(crate) async fn scrape_retweet(access_token: String, duration: Duration) -> Result<()> {
+/// Main entrypoint function, that doesn't make any assumptions about the environment. No
+/// environment variables are needed at this point
+/// # Parameters
+/// * `search_term`: a Twitter search string ([see documentation here](https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-query))
+/// * `access_token`: a Twitter access token, obtained from a user via Oauth
+/// * `duration`: amount of time to look backwards in time for Tweets
+pub async fn scrape_retweet(
+    search_term: &str,
+    access_token: &str,
+    duration: Duration,
+) -> Result<()> {
+    println!("Looking at tweets in the last {:?}", &duration);
     let now = Utc::now();
     let earliest = now - duration;
+    println!("Looking at Tweets posted since {:?}", &earliest);
 
     let http_client = reqwest::Client::new();
-    let tok = AccessToken::new(access_token);
+    let tok = AccessToken::new(access_token.into());
     let id = get_self(&http_client, &tok).await?;
-    dbg!(&id);
-    let tweets = scrape(&http_client, &tok, earliest).await?;
+    println!("My own ID is {}", &id);
+    let tweets = scrape(search_term, &http_client, &tok, earliest).await?;
+    println!("Scraped {} tweets. Preparing to retweet.", tweets.len());
     retweet(id, &http_client, &tok, tweets).await?;
-
+    println!("Successfully retweeted.");
     Ok(())
 }
 
+/// Returns the current user's ID
 async fn get_self(client: &reqwest::Client, token: &AccessToken) -> Result<String> {
     let user = client
         .get("https://api.twitter.com/2/users/me")
@@ -65,17 +79,17 @@ async fn get_self(client: &reqwest::Client, token: &AccessToken) -> Result<Strin
     Ok(user.data.id)
 }
 
+/// Returns a series of Tweets matching the search term and start date
 async fn scrape(
+    search_term: &str,
     client: &reqwest::Client,
     token: &AccessToken,
     earliest: DateTime<Utc>,
 ) -> Result<Vec<Tweet>> {
     let mut tweets = Vec::<Tweet>::new();
     let start_time = earliest.to_rfc3339();
-    let mut query_params: HashMap<&str, String> = HashMap::from([
-        ("query", "#rustlang -is:retweet".into()),
-        ("start_time", start_time),
-    ]);
+    let mut query_params: HashMap<&str, String> =
+        HashMap::from([("query", search_term.into()), ("start_time", start_time)]);
     loop {
         let mut response = client
             .get("https://api.twitter.com/2/tweets/search/recent")
@@ -111,6 +125,8 @@ async fn scrape(
     }
 }
 
+/// Retweets a number of tweets as the current user.
+/// Does not require any environment variables
 async fn retweet(
     user_id: String,
     client: &reqwest::Client,
@@ -131,6 +147,8 @@ async fn retweet(
     Ok(())
 }
 
+/// Gets the refresh token from the DynamoDB
+/// This assumes you have the appropriate AWS variables exported
 async fn get_refresh_token() -> Result<String> {
     let client = rust_lang_retweet::dynamo::get_client().await;
     let ret = client
@@ -192,8 +210,11 @@ async fn handler(
 
 async fn main_tokio() -> Result<()> {
     let access = get_access_token().await?;
+    let query = get_twitter_query()?;
+
     scrape_retweet(
-        access,
+        &query,
+        &access,
         Duration::minutes(i64::from_str(
             &var("TWITTER_SCRAPE_INTERVAL").with_context(|| "Please include the TWITTER_SCRAPE_INTERVAL variable, which should be a number indicating the number of minutes between executions")?,
         )?),
@@ -208,9 +229,14 @@ async fn test_scrape() {
     let earliest = Utc::now() - Duration::days(1);
     let access = get_access_token().await.unwrap();
     let http_client = reqwest::Client::new();
-    let tweets = scrape(&http_client, &AccessToken::new(access), earliest)
-        .await
-        .unwrap();
+    let tweets = scrape(
+        "#rustlang -is:retweet",
+        &http_client,
+        &AccessToken::new(access),
+        earliest,
+    )
+    .await
+    .unwrap();
     dbg!(&tweets);
     assert!(tweets.len() > 0)
 }

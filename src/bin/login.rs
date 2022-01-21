@@ -3,8 +3,9 @@ use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, Scope, TokenResponse};
 
-use rust_lang_retweet::auth::{client_from_env, get_twitter_client_id};
+use rust_lang_retweet::auth::client_from_env;
 use rust_lang_retweet::dynamo::update_database;
+use rust_lang_retweet::environment::get_twitter_client_id;
 
 /// Executes the auth flow for a
 pub(crate) async fn get_token(client: BasicClient) -> Result<String> {

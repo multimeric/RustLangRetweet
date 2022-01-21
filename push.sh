@@ -6,7 +6,6 @@ docker run \
   -v "${PWD}":/usr/src/myapp \
    -w /usr/src/myapp rust:latest \
   cargo build --release --target x86_64-unknown-linux-gnu
-#cargo build --release --target x86_64-unknown-linux-gnu
 rm bundle.zip
 zip bundle.zip bootstrap
 aws lambda create-function --function-name retweet-bot \
