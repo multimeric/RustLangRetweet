@@ -6,8 +6,9 @@ AWS Lambda and DynamoDB, so will likely cost you nothing. The steps below will s
 ## Setting it Up
 
 ### Environment Variables
-Here is a table of all the environment variables used by this application.
-Export them in your terminal as soon as you have the appropriate information.
+
+Here is a table of all the environment variables used by this application. Export them in your terminal as soon as you
+have the appropriate information.
 
 | Env Variable              | Value                                                                   |
 |---------------------------|-------------------------------------------------------------------------|
@@ -19,7 +20,6 @@ Export them in your terminal as soon as you have the appropriate information.
 | `AWS_PROFILE`    | AWS Profile                                                             |
 | `AWS_TABLE_NAME` | DynamoDB table name                                                     |
 | `AWS_EXECUTION_ROLE` | ARN of the execution role for the lambda                                |
-
 
 ### Twitter Setup
 
@@ -78,8 +78,7 @@ Export them in your terminal as soon as you have the appropriate information.
 ### Build Step
 
 * The `push.sh` script builds the binary in the official Rust docker image.
-* This may not be necessary on all machines,
-  but is done like this because even if you are running Linux, you may have a newer glibc version, which will then cause
-  the binary to fail to run on Lambda. Refer
+* This may not be necessary on all machines, but is done like this because even if you are running Linux, you may have a
+  newer glibc version, which will then cause the binary to fail to run on Lambda. Refer
   to [this post](https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html)
   for more info.

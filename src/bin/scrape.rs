@@ -15,7 +15,7 @@ use rust_lang_retweet::environment::{get_twitter_client_id, get_twitter_query};
 
 #[derive(Deserialize, Debug)]
 struct TwitterApiResponse<DATA, META> {
-    data: DATA,
+    data: Option<DATA>,
     meta: Option<META>,
 }
 
@@ -76,7 +76,10 @@ async fn get_self(client: &reqwest::Client, token: &AccessToken) -> Result<Strin
         .await?
         .json::<TwitterApiResponse<User, ()>>()
         .await?;
-    Ok(user.data.id)
+    Ok(user
+        .data
+        .ok_or(anyhow::Error::msg("No identity data returned by Twitter"))?
+        .id)
 }
 
 /// Returns a series of Tweets matching the search term and start date
@@ -91,7 +94,7 @@ async fn scrape(
     let mut query_params: HashMap<&str, String> =
         HashMap::from([("query", search_term.into()), ("start_time", start_time)]);
     loop {
-        let mut response = client
+        let response = client
             .get("https://api.twitter.com/2/tweets/search/recent")
             .bearer_auth(token.secret())
             .query(
@@ -104,7 +107,13 @@ async fn scrape(
             .await?
             .json::<TwitterApiResponse<Vec<Tweet>, TwitterMeta>>()
             .await?;
-        tweets.append(&mut response.data);
+
+        // Append any new Tweets if we got any
+        if let Some(mut data) = response.data {
+            tweets.append(&mut data);
+        }
+
+        // Handle additional pages
         match response.meta {
             None => {
                 // As soon as there are no more tweets, return
@@ -229,7 +238,7 @@ async fn test_scrape() {
     let earliest = Utc::now() - Duration::days(1);
     let access = get_access_token().await.unwrap();
     let http_client = reqwest::Client::new();
-    let tweets = scrape(
+    scrape(
         "#rustlang -is:retweet",
         &http_client,
         &AccessToken::new(access),
@@ -237,8 +246,22 @@ async fn test_scrape() {
     )
     .await
     .unwrap();
-    dbg!(&tweets);
-    assert!(tweets.len() > 0)
+}
+
+#[tokio::test]
+async fn test_scrape_empty() {
+    // Test scraping if we have no response
+    let earliest = Utc::now();
+    let access = get_access_token().await.unwrap();
+    let http_client = reqwest::Client::new();
+    scrape(
+        "#rustlang -#rustlang",
+        &http_client,
+        &AccessToken::new(access),
+        earliest,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
