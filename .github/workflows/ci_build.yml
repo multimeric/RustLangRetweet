@@ -24,10 +24,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
           command: check
-    - name: cargo build
-      uses: actions-rs/cargo@v1
-      with:
-          command: build
+    
   
   lint:
     runs-on: ubuntu-latest
