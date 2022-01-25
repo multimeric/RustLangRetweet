@@ -10,10 +10,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  cargo-build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     
@@ -25,13 +23,21 @@ jobs:
     - uses: actions-rs/cargo@v1
       with:
           command: build
+          args: verbose
+  
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
 
     
-#    - run: |
- #          rustup update
-  #  - run: cargo update
-   # - name: Build
-    #  run: cargo build --verbose
-    #- name: linting
-    #  run: |
-     #      cargo fmt --all -- --check
