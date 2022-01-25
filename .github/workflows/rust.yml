@@ -16,9 +16,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose
-    - name: linting
-      run: |
-           rustup component add rustfmt
-           cargo fmt
+    - run: |
+           cargo -V
+           rustc -V
+    #- name: Build
+     # run: cargo build --verbose
+    #- name: linting
+     # run: |
+      #     rustup component add rustfmt
+       #    cargo fmt
