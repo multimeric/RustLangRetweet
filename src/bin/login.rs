@@ -37,12 +37,13 @@ pub(crate) async fn get_token(client: BasicClient) -> Result<String> {
 
     let client_id = get_twitter_client_id()?;
     // Now you can trade it for an access token.
-    let token = client
+    let req = client
         .exchange_code(AuthorizationCode::new(line))
         .add_extra_param("client_id", client_id)
         // Set the PKCE code verifier.
-        .set_pkce_verifier(pkce_verifier)
-        .request_async(async_http_client)
+        .set_pkce_verifier(pkce_verifier);
+    dbg!(&req);
+    let token = req.request_async(async_http_client)
         .await
         .map_err(|err| anyhow::Error::msg(format!("{:?}", err)))?;
 
